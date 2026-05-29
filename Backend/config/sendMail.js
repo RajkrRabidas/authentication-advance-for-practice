@@ -2,16 +2,16 @@ const { createTransport } = require("nodemailer");
 
 const sendmail = async (email, subject, html) => {
   const transport = createTransport({
-    host: "smpt.gmail.com",
+    host: "smtp.gmail.com",
     port: 465,
     auth: {
-        user: process.env.EMAIL,
-        pass: process.env.PASSWORD
+        user: process.env.SMTP_EMAIL,
+        pass: process.env.SMTP_PASSWORD
     }
   });
 
     await transport.sendMail({
-        from: process.env.EMAIL,
+        from: process.env.SMTP_EMAIL,
         to: email,
         subject,
         html
