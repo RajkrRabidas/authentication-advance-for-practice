@@ -6,7 +6,6 @@ const UserModel = require("../models/User.model");
 
 const registerUser = TryCatch(async (req, res) => {
   const sanitizeBody = sanitize(req.body);
-
   const validation = registerSchema.safeParse(sanitizeBody);
 
   if (!validation.success) {
