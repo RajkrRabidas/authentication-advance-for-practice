@@ -67,3 +67,31 @@ const registerUser = TryCatch(async (req, res) => {
   }
 });
 
+const verifyUser = TryCatch (async (req, res) => {
+  const {toekn} = req.params
+
+  if(!token) {
+    return res.status(400).json({message: "token is required"})
+  }
+
+  const userData = `verify-token:${token}`
+
+  const userDataJson = await redisClient.get(verifyKey)
+
+  if(!userDataJson){
+    return res.status(400).json({message: "Invalid or expired token"})
+  }
+
+  await redisClient.del(verifyKey)
+
+  const userdata = JSON.parse(userDataJson)
+
+  await userModel.create({
+    name: userdata.name,
+    email: userdata.email,
+    password: userdata.password,
+  })
+
+  return res.status(200).json({message: "Account verified successfully, you can now login"})
+
+})
