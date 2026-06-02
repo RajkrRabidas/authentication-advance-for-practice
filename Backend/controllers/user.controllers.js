@@ -67,31 +67,36 @@ const registerUser = TryCatch(async (req, res) => {
   }
 });
 
-const verifyUser = TryCatch (async (req, res) => {
-  const {toekn} = req.params
+const verifyUser = TryCatch(async (req, res) => {
+  const {token} = req.params
 
-  if(!token) {
-    return res.status(400).json({message: "token is required"})
+  if(!token){
+    return res.status(400).json({message: "token is requeded"})
   }
 
-  const userData = `verify-token:${token}`
+  const verifyKey = `verify-token:${token}`
 
   const userDataJson = await redisClient.get(verifyKey)
 
   if(!userDataJson){
-    return res.status(400).json({message: "Invalid or expired token"})
+    return res.status(400).json({message: "Invaild data"})
   }
 
   await redisClient.del(verifyKey)
 
-  const userdata = JSON.parse(userDataJson)
+  const userData = JSON.parse( userDataJson)
 
-  await userModel.create({
-    name: userdata.name,
-    email: userdata.email,
-    password: userdata.password,
-  })
+    const existingUser = await userModel.findOne({ email: userData.email });
 
-  return res.status(200).json({message: "Account verified successfully, you can now login"})
+  if (existingUser) {
+    return res.status(400).json({ message: "User already exists" });
+  }
 
+  const newUser = await userModel.create({
+    name: userData.name,
+    email: userData.email,
+    password: userData.password,
+  });
+
+  res.status(200).json({ message: "Email verified successfully", user: newUser });
 })
