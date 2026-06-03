@@ -108,7 +108,6 @@ const verifyUser = TryCatch(async (req, res) => {
 
 const loginUser = TryCatch(async (req, res) => {
   const sanitizeBody = sanitize(req.body);
-
   const validation = loginSchema.safeParse(sanitizeBody);
 
   if (!validation.success) {
