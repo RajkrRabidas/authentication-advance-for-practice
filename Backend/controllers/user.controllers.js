@@ -4,6 +4,7 @@ const TryCatch = require("../middlewares/tryCatch");
 const { sanitize } = require("mongo-sanitize");
 const userModel = require("../models/User.model");
 const { getVerifyEmailHtml } = require("../config/html");
+const { tr } = require("zod/v4/locales");
 
 const registerUser = TryCatch(async (req, res) => {
   const sanitizeBody = sanitize(req.body);
@@ -108,68 +109,65 @@ const verifyUser = TryCatch(async (req, res) => {
 
 const loginUser = TryCatch(async (req, res) => {
   const sanitizeBody = sanitize(req.body);
-  const validation = loginSchema.safeParse(sanitizeBody);
+  const validation = loginSchema(sanitizeBody);
 
-  if (!validation.success) {
+  if (!validation.data) {
     const zodError = validation.error;
-    let fristErrorMessage = "Validation failed";
+    let fristErrorMessagge = "Validation failed";
     let allError = [];
 
     if (zodError?.issues && Array.isArray(zodError.issues)) {
-      allError = zodError.issues.map((issues) => ({
-        field: issue.path ? issue.path.join(".") : "unknown",
-        message: issue.message || "validation error",
-        code: issue.code || "validation_error",
-      }));
-
-      firstErrorMessage = allError[0]?.message || "Validation Failed";
+      allError = zodError.issues.map((issue) => {
+        field: issue.path() ? issue.path().join(".") : "validation error";
+        message: issue.message || "validation failed";
+        code: issue.code || "validation Error";
+      });
+      fristErrorMessagge = allError[0]?.message || "validation failed";
     }
     return res.status(400).json({
       message: firstErrorMessage,
       errors: allError,
     });
   }
+
   try {
-    const { email, password } = validation.data;
+    const { name, email, password } = validation.data;
 
-    const rateLimitKey = `login-rate-limit:${req.ip}, :${email}`;
+    const ratelimit = `ligin-ratelimit-key:${req.ip},:${email}`;
 
-    if (await redisClient.get(rateLimitKey)) {
+    if (await redisClient.get(ratelimit)) {
       return res
         .status(429)
-        .json({ message: "Too many requests. Please try again later." });
+        .json({ message: "Too many request, please try agin later" });
     }
 
-    const user = await userModel.findOne({ email });
+    let user = await userModel.findOne({ email });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ message: "user already exist" });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const comparePassword = await becryt.compare(password, user.password);
 
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid email or password" });
+    if (!comparePassword) {
+      return res.status.json({ message: "Invalid credentials" });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = Math.floor(10000 + Math.random() * 900000).toString();
 
-    const otpKey = `otp:${email}`;
+    const otpKey = `otpkey:${email}`;
 
-    await redisClient.set(otpKey, JSON.stringify({ otp }), { EX: 300 });
+    await redisClient.set(otpKey, JSON.stringify(otp));
 
     const subject = "Your OTP Code";
-    const html = getOtpHtml({ email, otp });
+    const html = getOtpEmailHtml({ name: user.name, otp });
+    await sendEmail({ to: email, subject, html });
 
-    await sendEmail({ email, subject, html });
+    await redisClient.set(ratelimit, "true", {EX:300})
 
-    await redisClient.set(ratelimitKey, "ture", { EX: 60 }); // 1 min rate limit
-
-    res
-      .status(200)
-      .json({ message: "Otp sent to your email, it is valid for 5 min" });
+    res.status(200).json({message:"Otp sent to your email, please check your inbox"})
   } catch (error) {
-    console.error("login error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("Error in loginUser controller:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 });
