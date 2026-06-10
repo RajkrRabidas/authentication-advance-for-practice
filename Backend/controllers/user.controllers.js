@@ -163,11 +163,43 @@ const loginUser = TryCatch(async (req, res) => {
     const html = getOtpEmailHtml({ name: user.name, otp });
     await sendEmail({ to: email, subject, html });
 
-    await redisClient.set(ratelimit, "true", {EX:300})
+    await redisClient.set(ratelimit, "true", { EX: 300 });
 
-    res.status(200).json({message:"Otp sent to your email, please check your inbox"})
+    res
+      .status(200)
+      .json({ message: "Otp sent to your email, please check your inbox" });
   } catch (error) {
     console.error("Error in loginUser controller:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
+});
+
+const verifyOtp = TryCatch(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ message: "please provide all details" });
+  }
+
+  const otpKey = `otpKey:${email}`;
+
+  const storeOtpString = await redisClient.get(otpKey);
+
+  if (!storeOtpString) {
+    return res.status(400).json({ message: "Otp Expied" });
+  }
+
+  const storeOtp = JSON.parse(storeOtp);
+
+  if (storeOtp !== otp) {
+    return res.status(400).json({ message: "invalid Otp" });
+  }
+
+  await redisClient.del(otpKey);
+
+  let user = await userModel.findOne({ email });
+
+  await generateToken(user.id, res);
+
+  res.status(200).json({ message: `welcome ${user.name}`, user });
 });
