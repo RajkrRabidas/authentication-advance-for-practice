@@ -203,3 +203,11 @@ const verifyOtp = TryCatch(async (req, res) => {
 
   res.status(200).json({ message: `welcome ${user.name}`, user });
 });
+
+
+module.exports = {
+  registerUser,
+  verifyUser,
+  loginUser,
+  verifyOtp
+};
