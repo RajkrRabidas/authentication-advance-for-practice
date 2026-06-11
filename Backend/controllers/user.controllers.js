@@ -204,6 +204,34 @@ const verifyOtp = TryCatch(async (req, res) => {
   res.status(200).json({ message: `welcome ${user.name}`, user });
 });
 
+const myProfile = TryCatch( (req, res) => {
+  const user = req.user
+  res.json(user)
+})
+
+const refeashToken = TryCatch( async (req, res) => {
+  try {
+      const refreashToken = req.cookie?.refreash_token
+
+  if(!refreashToken){
+    return res.status(403).json({message:"Please login - no token provided"})
+  }
+
+  const decode = await VerifyRefreshToken(refreashToken)
+
+  if(!decode){
+    return res.status(403).json({message: "Invalid refresh token"})
+  }
+
+  await generateNewAccessToken(decode.id,res)
+
+  res.status(200).json({message: "Access token refreshed", user: req.user})
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+})
+
 
 module.exports = {
   registerUser,
