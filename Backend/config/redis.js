@@ -7,6 +7,7 @@ if (!redisUrl) {
   process.exit(1);
 }
 
+
 const redisClient = createClient({
   url: redisUrl,
 });
