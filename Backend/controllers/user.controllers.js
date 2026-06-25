@@ -53,7 +53,6 @@ const registerUser = TryCatch(async (req, res) => {
     const verifyToken = await crypto.randomBytes(32).toString("hex");
     const verifyKey = `verifyKey:${verifyToken}`;
     const dataToStore = JSON.stringify({ email, name, password: hashPassword });
-
     await redisClient.set(verifyKey, dataToStore, { EX: 300 });
 
     const subject = "verify your account";
