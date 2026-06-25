@@ -25,7 +25,6 @@ const registerUser = TryCatch(async (req, res) => {
 
       fristErrorMessage = allError[0]?.message || "Validation Error";
     }
-
     return res.status(400).json({
       message: firstErrorMessage,
       errors: allError,
